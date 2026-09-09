@@ -79,8 +79,24 @@
 
     <div class="dev-tools__views">
       <div class="dev-tools__body dev-tools__view" id="panel-view-params" role="tabpanel" aria-labelledby="panel-tab-params">
-      <section class="dev-tools__group" data-group="appearance">
-        <button type="button" class="dev-tools__group-toggle" aria-expanded="true">
+      <section class="dev-tools__group is-collapsed" data-group="presets">
+        <button type="button" class="dev-tools__group-toggle" aria-expanded="false">
+          <span class="dev-tools__group-title">Пресеты</span>
+          <span class="dev-tools__group-icon" aria-hidden="true"></span>
+        </button>
+        <div class="dev-tools__group-body">
+          <div class="dev-tools__preset-save">
+            <input type="text" class="dev-tools__text" id="preset-name" data-i18n-placeholder="preset.placeholder" placeholder="Название пресета" maxlength="40">
+            <button type="button" class="dev-tools__btn" id="preset-save" data-i18n="preset.save">Сохранить</button>
+          </div>
+          <p class="dev-tools__hint" id="hint-preset">★ — пресет по умолчанию, загружается при обновлении страницы</p>
+          <ul class="dev-tools__preset-list" id="preset-list"></ul>
+          <p class="dev-tools__empty" id="preset-empty" hidden>Пресетов пока нет</p>
+        </div>
+      </section>
+
+      <section class="dev-tools__group is-collapsed" data-group="appearance">
+        <button type="button" class="dev-tools__group-toggle" aria-expanded="false">
           <span class="dev-tools__group-title">Цвета</span>
           <span class="dev-tools__group-icon" aria-hidden="true"></span>
         </button>
@@ -103,8 +119,8 @@
         </div>
       </section>
 
-      <section class="dev-tools__group" data-group="grid">
-        <button type="button" class="dev-tools__group-toggle" aria-expanded="true">
+      <section class="dev-tools__group is-collapsed" data-group="grid">
+        <button type="button" class="dev-tools__group-toggle" aria-expanded="false">
           <span class="dev-tools__group-title">Сетка</span>
           <span class="dev-tools__group-icon" aria-hidden="true"></span>
         </button>
@@ -304,8 +320,8 @@
         </div>
       </section>
 
-      <section class="dev-tools__group" data-group="tape">
-        <button type="button" class="dev-tools__group-toggle" aria-expanded="true">
+      <section class="dev-tools__group is-collapsed" data-group="tape">
+        <button type="button" class="dev-tools__group-toggle" aria-expanded="false">
           <span class="dev-tools__group-title">Лента</span>
           <span class="dev-tools__group-icon" aria-hidden="true"></span>
         </button>
@@ -317,8 +333,8 @@
         </div>
       </section>
 
-      <section class="dev-tools__group" data-group="scroll-cols">
-        <button type="button" class="dev-tools__group-toggle" aria-expanded="true">
+      <section class="dev-tools__group is-collapsed" data-group="scroll-cols">
+        <button type="button" class="dev-tools__group-toggle" aria-expanded="false">
           <span class="dev-tools__group-title">Скролл колонок</span>
           <span class="dev-tools__group-icon" aria-hidden="true"></span>
         </button>
@@ -445,8 +461,8 @@
         </div>
       </section>
 
-      <section class="dev-tools__group" data-group="inertia">
-        <button type="button" class="dev-tools__group-toggle" aria-expanded="true">
+      <section class="dev-tools__group is-collapsed" data-group="inertia">
+        <button type="button" class="dev-tools__group-toggle" aria-expanded="false">
           <span class="dev-tools__group-title">Инерция скролла</span>
           <span class="dev-tools__group-icon" aria-hidden="true"></span>
         </button>
@@ -494,24 +510,8 @@
         </div>
       </section>
 
-      <section class="dev-tools__group" data-group="presets">
-        <button type="button" class="dev-tools__group-toggle" aria-expanded="true">
-          <span class="dev-tools__group-title">Пресеты</span>
-          <span class="dev-tools__group-icon" aria-hidden="true"></span>
-        </button>
-        <div class="dev-tools__group-body">
-          <div class="dev-tools__preset-save">
-            <input type="text" class="dev-tools__text" id="preset-name" data-i18n-placeholder="preset.placeholder" placeholder="Название пресета" maxlength="40">
-            <button type="button" class="dev-tools__btn" id="preset-save" data-i18n="preset.save">Сохранить</button>
-          </div>
-          <p class="dev-tools__hint" id="hint-preset">★ — пресет по умолчанию, загружается при обновлении страницы</p>
-          <ul class="dev-tools__preset-list" id="preset-list"></ul>
-          <p class="dev-tools__empty" id="preset-empty" hidden>Пресетов пока нет</p>
-        </div>
-      </section>
-
-      <section class="dev-tools__group" data-group="stats">
-        <button type="button" class="dev-tools__group-toggle" aria-expanded="true">
+      <section class="dev-tools__group is-collapsed" data-group="stats">
+        <button type="button" class="dev-tools__group-toggle" aria-expanded="false">
           <span class="dev-tools__group-title">Статистика</span>
           <span class="dev-tools__group-icon" aria-hidden="true"></span>
         </button>

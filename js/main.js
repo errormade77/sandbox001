@@ -112,8 +112,11 @@ let cycleHeight = 0;
 let layoutColumns = -1;
 
 let dragState = null;
-let standDragScroll = null;
+let touchInteraction = null;
 const MOBILE_PANEL_MQ = window.matchMedia('(max-width: 640px)');
+const MOBILE_SCROLL_MQ = window.matchMedia('(hover: none) and (pointer: coarse)');
+const MOBILE_SCROLL_GAIN = 1.7;
+const TOUCH_SCROLL_THRESHOLD = 8;
 let lastFrameTime = performance.now();
 let lastWheelTime = 0;
 let decelStartTime = 0;
@@ -884,11 +887,19 @@ function getMaxColumnsForWidth(innerWidth, moduleSize, minGap = 0) {
   return Math.max(1, Math.floor((innerWidth + minGap) / (moduleSize + minGap)));
 }
 
+function getResponsiveMinGap(innerWidth) {
+  const configured = state.responsiveColGap;
+  if (!state.responsiveColumns || innerWidth >= 768) return configured;
+
+  const mobileScale = clamp(innerWidth / 768, 0.22, 1);
+  return Math.max(8, configured * mobileScale);
+}
+
 function getActiveColumns() {
   if (!state.responsiveColumns) return state.columns;
 
-  const minGap = state.responsiveColGap;
   const innerWidth = getLayoutInnerWidth();
+  const minGap = getResponsiveMinGap(innerWidth);
   let columns = Math.min(state.columns, getMaxColumnsForWidth(innerWidth, state.moduleSize, minGap));
 
   while (columns > 1 && calcColGap(innerWidth, columns, state.moduleSize) < minGap) {
@@ -1646,11 +1657,12 @@ function clearModuleHover(immediate = false) {
 
 function bindModuleHover() {
   stand.addEventListener('pointermove', (event) => {
-    if (!state.moduleHover) return;
+    if (!state.moduleHover || event.pointerType === 'touch') return;
     applyModuleHover(event.clientX, event.clientY);
   });
 
-  stand.addEventListener('pointerleave', () => {
+  stand.addEventListener('pointerleave', (event) => {
+    if (event.pointerType === 'touch') return;
     clearModuleHover();
   });
 }
@@ -1897,8 +1909,9 @@ function updateScrollColumns(dtNorm = 1) {
     colBlurLag.fill(scroll.y);
   }
 
-  const factor = state.scrollIntensity / 100;
-  const speedRatio = getScrollSpeedRatio();
+  const mobileGain = getMobileScrollGain();
+  const factor = (state.scrollIntensity / 100) * mobileGain;
+  const speedRatio = Math.min(1, getScrollSpeedRatio() * mobileGain);
   const maxShrink = state.scrollScaleAmount / 100;
   const maxBlur = state.scrollBlurAmount;
 
@@ -1960,25 +1973,89 @@ function isScrollExcludedTarget(target) {
   return Boolean(target.closest('.site-header a, .dev-tools__window, .dev-tools__fab'));
 }
 
-function applyScrollInput(deltaY) {
+function getMobileScrollGain() {
+  return MOBILE_SCROLL_MQ.matches ? MOBILE_SCROLL_GAIN : 1;
+}
+
+function applyScrollInput(deltaY, { direct = false, touchGain = 1 } = {}) {
   if (introActive) return false;
 
   clearModuleHover(true);
 
-  const delta = deltaY * (state.inertiaSensitivity / 100);
+  const gain = direct
+    ? Math.max(0.65, state.inertiaSensitivity / 60) * touchGain
+    : state.inertiaSensitivity / 100;
+  const delta = deltaY * gain;
   lastWheelTime = performance.now();
   decelStartTime = 0;
 
-  if (state.inertiaEnabled) {
-    scroll.vel += delta * 0.18;
-  } else {
-    scroll.vel = 0;
+  if (direct || !state.inertiaEnabled) {
     scroll.y += delta;
     applyScrollBounds();
+    scroll.vel = direct ? delta * 0.35 : 0;
     syncScrollVisuals(true);
+  } else {
+    scroll.vel += delta * 0.18;
   }
 
   return true;
+}
+
+function findTouch(list, id) {
+  for (let i = 0; i < list.length; i += 1) {
+    if (list[i].identifier === id) return list[i];
+  }
+  return null;
+}
+
+function isModuleHoverActive() {
+  return grid.classList.contains('grid--hover-proximity-active');
+}
+
+function getPrimaryHoverCell() {
+  let primaryCell = null;
+
+  grid.querySelectorAll('.cell').forEach((cell) => {
+    const module = cell.querySelector('.cell__module');
+    if (!module) return;
+    if (getModuleHoverTarget(module).isPrimary) {
+      primaryCell = cell;
+    }
+  });
+
+  return primaryCell;
+}
+
+function handleModuleTap(clientX, clientY, target) {
+  if (!state.moduleHover) return;
+
+  const cell = target instanceof Element ? target.closest('.cell') : null;
+
+  if (!cell) {
+    if (isModuleHoverActive()) {
+      clearModuleHover(false);
+    }
+    return;
+  }
+
+  const module = cell.querySelector('.cell__module');
+  if (!module) {
+    if (isModuleHoverActive()) {
+      clearModuleHover(false);
+    }
+    return;
+  }
+
+  if (isModuleHoverActive() && getPrimaryHoverCell() === cell) {
+    clearModuleHover(false);
+    return;
+  }
+
+  const rect = module.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  applyModuleHover(cx, cy);
+  lastHoverPointer = { x: cx, y: cy };
 }
 
 function onWheel(event) {
@@ -1993,54 +2070,73 @@ function onWheel(event) {
 }
 
 function bindStandTouchScroll() {
-  stand.addEventListener('pointerdown', (event) => {
+  canvas.addEventListener('touchstart', (event) => {
     if (introActive || isScrollExcludedTarget(event.target)) return;
-    if (event.pointerType === 'mouse') return;
-    if (event.isPrimary === false) return;
+    if (event.touches.length !== 1) return;
 
-    standDragScroll = {
-      pointerId: event.pointerId,
-      lastY: event.clientY,
+    const touch = event.touches[0];
+    touchInteraction = {
+      id: touch.identifier,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      lastY: touch.clientY,
       lastTime: event.timeStamp,
       velocity: 0,
+      scrolling: false,
     };
+  }, { passive: true });
 
-    stand.setPointerCapture(event.pointerId);
-  });
+  canvas.addEventListener('touchmove', (event) => {
+    if (!touchInteraction) return;
 
-  stand.addEventListener('pointermove', (event) => {
-    if (!standDragScroll || event.pointerId !== standDragScroll.pointerId) return;
+    const touch = findTouch(event.touches, touchInteraction.id);
+    if (!touch) return;
 
-    const deltaY = standDragScroll.lastY - event.clientY;
-    const dt = Math.max(1, event.timeStamp - standDragScroll.lastTime);
-
-    if (Math.abs(deltaY) > 0.5) {
-      standDragScroll.velocity = (deltaY / dt) * 16.667;
-      standDragScroll.lastY = event.clientY;
-      standDragScroll.lastTime = event.timeStamp;
-      applyScrollInput(deltaY);
+    if (introActive) {
       event.preventDefault();
+      return;
     }
-  });
 
-  const endStandDragScroll = (event) => {
-    if (!standDragScroll || event.pointerId !== standDragScroll.pointerId) return;
+    const dx = touch.clientX - touchInteraction.startX;
+    const dy = touch.clientY - touchInteraction.startY;
 
-    if (state.inertiaEnabled && Math.abs(standDragScroll.velocity) > 0.5) {
-      scroll.vel += standDragScroll.velocity * (state.inertiaSensitivity / 100) * 0.35;
+    if (!touchInteraction.scrolling) {
+      if (Math.hypot(dx, dy) < TOUCH_SCROLL_THRESHOLD) return;
+      touchInteraction.scrolling = true;
+    }
+
+    const deltaY = touchInteraction.lastY - touch.clientY;
+    if (Math.abs(deltaY) < 0.25) return;
+
+    event.preventDefault();
+
+    const dt = Math.max(1, event.timeStamp - touchInteraction.lastTime);
+    touchInteraction.velocity = (deltaY / dt) * 16.667;
+    touchInteraction.lastY = touch.clientY;
+    touchInteraction.lastTime = event.timeStamp;
+    applyScrollInput(deltaY, { direct: true, touchGain: getMobileScrollGain() });
+  }, { passive: false });
+
+  const endTouch = (event) => {
+    if (!touchInteraction) return;
+
+    const touch = findTouch(event.changedTouches, touchInteraction.id);
+    if (!touch) return;
+
+    if (!touchInteraction.scrolling) {
+      handleModuleTap(touch.clientX, touch.clientY, event.target);
+    } else if (state.inertiaEnabled && Math.abs(touchInteraction.velocity) > 0.5) {
+      const flickGain = Math.max(0.5, state.inertiaSensitivity / 80) * getMobileScrollGain();
+      scroll.vel += touchInteraction.velocity * flickGain;
       lastWheelTime = performance.now();
       decelStartTime = 0;
     }
 
-    if (stand.hasPointerCapture(event.pointerId)) {
-      stand.releasePointerCapture(event.pointerId);
-    }
-
-    standDragScroll = null;
+    touchInteraction = null;
   };
 
-  stand.addEventListener('pointerup', endStandDragScroll);
-  stand.addEventListener('pointercancel', endStandDragScroll);
+  canvas.addEventListener('touchend', endTouch, { passive: true });
+  canvas.addEventListener('touchcancel', endTouch, { passive: true });
 }
 
 function getCatalogIntroDistance() {
@@ -2988,7 +3084,7 @@ function bindPanelGroups() {
 
     if (!id || !toggle) return;
 
-    setGroupCollapsed(group, toggle, saved[id] === false);
+    setGroupCollapsed(group, toggle, saved[id] !== true);
 
     toggle.addEventListener('click', () => {
       const collapsed = !group.classList.contains('is-collapsed');
