@@ -26,15 +26,12 @@
 html,
 body {
   height: 100%;
-  width: 100%;
   overflow: hidden;
   overscroll-behavior: none;
   touch-action: none;
 }
 
 body {
-  position: fixed;
-  inset: 0;
   font-family: Inter, "Helvetica Neue", Helvetica, Arial, sans-serif;
   background: var(--site-bg);
   color: var(--text);
@@ -43,9 +40,12 @@ body {
 .stand {
   position: relative;
   height: 100vh;
+  height: 100dvh;
+  height: -webkit-fill-available;
   overflow: hidden;
   background: var(--site-bg);
   touch-action: none;
+  overscroll-behavior: none;
 }
 
 .site-header {
@@ -56,6 +56,10 @@ body {
   z-index: 1100;
   padding: var(--edge-margin) var(--edge-margin) 0;
   background: transparent;
+  pointer-events: none;
+}
+
+.site-header * {
   pointer-events: none;
 }
 
@@ -224,6 +228,8 @@ body {
   padding-inline: var(--edge-margin);
   padding-bottom: var(--edge-margin);
   touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .grid-cycle {
@@ -1358,11 +1364,6 @@ body {
 }
 
 @media (max-width: 640px) {
-  .stand {
-    height: 100dvh;
-    height: -webkit-fill-available;
-  }
-
   .dev-tools__window {
     left: 0 !important;
     right: 0;

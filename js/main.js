@@ -113,9 +113,9 @@ let layoutColumns = -1;
 
 let dragState = null;
 let touchInteraction = null;
+let physicsStarted = false;
 const MOBILE_PANEL_MQ = window.matchMedia('(max-width: 640px)');
 const MOBILE_SCROLL_MQ = window.matchMedia('(hover: none) and (pointer: coarse)');
-const MOBILE_SCROLL_GAIN = 1.7;
 const TOUCH_SCROLL_THRESHOLD = 8;
 let lastFrameTime = performance.now();
 let lastWheelTime = 0;
@@ -1001,8 +1001,17 @@ function measureCycleHeight(options = {}) {
     return true;
   }
 
-  cycleHeight = nextHeight;
-  return prevHeight !== nextHeight;
+  if (gridCycle) {
+    const layoutHeight = Math.round(
+      gridCycle.scrollHeight
+      || gridCycle.offsetHeight
+      || gridCycle.getBoundingClientRect().height,
+    );
+    nextHeight = Math.max(nextHeight, layoutHeight);
+  }
+
+  cycleHeight = Math.max(0, Math.round(nextHeight));
+  return prevHeight !== cycleHeight;
 }
 
 function shiftScrollLag(delta) {
@@ -1033,19 +1042,106 @@ function wrapScrollPosition() {
   }
 }
 
-function getCanvasViewportHeight() {
+function getCanvasPadding() {
   const style = getComputedStyle(canvas);
-  const paddingTop = parseFloat(style.paddingTop) || 0;
-  const paddingBottom = parseFloat(style.paddingBottom) || 0;
-  return Math.max(0, canvas.clientHeight - paddingTop - paddingBottom);
+  return {
+    top: parseFloat(style.paddingTop) || 0,
+    bottom: parseFloat(style.paddingBottom) || 0,
+  };
+}
+
+function estimateGridContentHeight() {
+  const slots = getActiveModuleCount();
+  if (slots <= 0) return 0;
+
+  const columns = Math.max(1, getActiveColumns());
+  const rows = Math.ceil(slots / columns);
+  const captionBlock = getCaptionBlockHeight();
+  const cellHeight = state.moduleSize + captionBlock + 8;
+
+  return rows * cellHeight + Math.max(0, rows - 1) * state.rowGap;
+}
+
+function measureGridLayoutHeight() {
+  if (!grid) return 0;
+
+  let maxBottom = 0;
+  const cells = grid.querySelectorAll('.cell');
+
+  for (let i = 0; i < cells.length; i += 1) {
+    const cell = cells[i];
+    maxBottom = Math.max(maxBottom, cell.offsetTop + cell.offsetHeight);
+  }
+
+  if (maxBottom > 0) return Math.round(maxBottom);
+
+  return Math.round(grid.scrollHeight || grid.offsetHeight || 0);
+}
+
+function getGridContentHeight() {
+  const layoutHeight = measureGridLayoutHeight();
+  const cycleLayout = gridCycle
+    ? Math.round(gridCycle.scrollHeight || gridCycle.offsetHeight || 0)
+    : 0;
+  const estimated = estimateGridContentHeight();
+
+  return Math.max(layoutHeight, cycleLayout, estimated);
+}
+
+function getCanvasViewportHeight() {
+  const header = document.querySelector('.site-header');
+  const { top: paddingTop, bottom: paddingBottom } = getCanvasPadding();
+  const canvasRect = canvas.getBoundingClientRect();
+  const paddedTop = canvasRect.top + paddingTop;
+  const headerBottom = header?.getBoundingClientRect().bottom ?? paddedTop;
+  const contentTop = Math.max(paddedTop, headerBottom);
+  let contentBottom = canvasRect.bottom - paddingBottom;
+
+  if (isTouchUi() && window.visualViewport) {
+    const vv = window.visualViewport;
+    const visualBottom = vv.offsetTop + vv.height;
+    contentBottom = Math.min(contentBottom, visualBottom - paddingBottom);
+  }
+
+  return Math.max(0, contentBottom - contentTop);
+}
+
+function syncFiniteScrollMetrics() {
+  if (state.infiniteScroll) return;
+
+  const contentHeight = getGridContentHeight();
+  if (contentHeight > 0) {
+    cycleHeight = contentHeight;
+    return;
+  }
+
+  if (cycleHeight <= 0) {
+    measureCycleHeight();
+  }
 }
 
 function getScrollMax() {
-  return Math.max(0, cycleHeight - getCanvasViewportHeight());
+  if (state.infiniteScroll) return 0;
+
+  syncFiniteScrollMetrics();
+
+  const viewportHeight = getCanvasViewportHeight();
+  const contentHeight = Math.max(
+    cycleHeight,
+    getGridContentHeight(),
+    estimateGridContentHeight(),
+  );
+
+  cycleHeight = contentHeight;
+  return Math.max(0, contentHeight - viewportHeight);
 }
 
 function clampScrollPosition() {
+  if (state.infiniteScroll) return;
+
   const max = getScrollMax();
+  if (max <= 0 && cycleHeight <= 0 && estimateGridContentHeight() <= 0) return;
+
   scroll.y = clamp(scroll.y, 0, max);
 
   if (scroll.y <= 0 || scroll.y >= max) {
@@ -1855,6 +1951,16 @@ function driftToBlur(drift, col) {
   return maxBlur * (minRatio + colT * (1 - minRatio));
 }
 
+function resetScrollColumnEffects(cells) {
+  grid.classList.remove('grid--scroll-cols', 'grid--scroll-scale', 'grid--scroll-blur');
+  cells.forEach((cell) => {
+    cell.style.transform = '';
+    const module = cell.querySelector('.cell__module');
+    if (module) setModuleScrollScale(module, 1);
+    clearCellScrollBlur(cell, module);
+  });
+}
+
 function updateScrollColumns(dtNorm = 1) {
   const cells = gridCycle.querySelectorAll('.cell');
   const shiftEnabled = state.scrollEffect;
@@ -1865,14 +1971,8 @@ function updateScrollColumns(dtNorm = 1) {
   const anyEffect = shiftEnabled || scaleEnabled || blurEnabled;
 
   if (!anyEffect) {
-    grid.classList.remove('grid--scroll-cols', 'grid--scroll-scale', 'grid--scroll-blur');
     resetColScrollLag();
-    cells.forEach((cell) => {
-      cell.style.transform = '';
-      const module = cell.querySelector('.cell__module');
-      if (module) setModuleScrollScale(module, 1);
-      clearCellScrollBlur(cell, module);
-    });
+    resetScrollColumnEffects(cells);
     return;
   }
 
@@ -1909,9 +2009,8 @@ function updateScrollColumns(dtNorm = 1) {
     colBlurLag.fill(scroll.y);
   }
 
-  const mobileGain = getMobileScrollGain();
-  const factor = (state.scrollIntensity / 100) * mobileGain;
-  const speedRatio = Math.min(1, getScrollSpeedRatio() * mobileGain);
+  const factor = state.scrollIntensity / 100;
+  const speedRatio = getScrollSpeedRatio();
   const maxShrink = state.scrollScaleAmount / 100;
   const maxBlur = state.scrollBlurAmount;
 
@@ -1973,26 +2072,71 @@ function isScrollExcludedTarget(target) {
   return Boolean(target.closest('.site-header a, .dev-tools__window, .dev-tools__fab'));
 }
 
-function getMobileScrollGain() {
-  return MOBILE_SCROLL_MQ.matches ? MOBILE_SCROLL_GAIN : 1;
+function startPhysicsLoop() {
+  if (physicsStarted) return;
+  physicsStarted = true;
+  requestAnimationFrame(physicsLoop);
+}
+
+function waitFontsReady(timeoutMs = 2500) {
+  if (!document.fonts?.ready) return Promise.resolve();
+  return Promise.race([
+    document.fonts.ready,
+    new Promise((resolve) => {
+      setTimeout(resolve, timeoutMs);
+    }),
+  ]);
+}
+
+function isTouchUi() {
+  return MOBILE_SCROLL_MQ.matches
+    || (navigator.maxTouchPoints > 0 && !window.matchMedia('(pointer: fine)').matches);
+}
+
+function isTouchScrollPoint(clientX, clientY) {
+  const target = document.elementFromPoint(clientX, clientY);
+  if (!(target instanceof Element)) return false;
+  if (isScrollExcludedTarget(target)) return false;
+  return canvas.contains(target) || target === canvas || target === gridCycle || grid.contains(target);
+}
+
+function cancelIntroForUserScroll() {
+  if (!introActive) return;
+
+  introActive = false;
+  scroll.vel = 0;
+  smoothScrollVel = 0;
+  cascadeBlend = 0;
+  resetColScrollLag();
 }
 
 function applyScrollInput(deltaY, { direct = false, touchGain = 1 } = {}) {
-  if (introActive) return false;
+  if (introActive) {
+    if (!direct) return false;
+    cancelIntroForUserScroll();
+  }
 
-  clearModuleHover(true);
+  if (!touchInteraction?.scrolling) {
+    clearModuleHover(true);
+  }
 
   const gain = direct
-    ? Math.max(0.65, state.inertiaSensitivity / 60) * touchGain
+    ? Math.max(1, state.inertiaSensitivity / 45) * touchGain
     : state.inertiaSensitivity / 100;
   const delta = deltaY * gain;
   lastWheelTime = performance.now();
   decelStartTime = 0;
 
   if (direct || !state.inertiaEnabled) {
+    if (cycleHeight <= 0) measureCycleHeight();
     scroll.y += delta;
     applyScrollBounds();
-    scroll.vel = direct ? delta * 0.35 : 0;
+    scroll.vel = 0;
+    if (direct) {
+      colScrollLag.fill(scroll.y);
+      colScaleLag.fill(scroll.y);
+      colBlurLag.fill(scroll.y);
+    }
     syncScrollVisuals(true);
   } else {
     scroll.vel += delta * 0.18;
@@ -2069,22 +2213,13 @@ function onWheel(event) {
   applyScrollInput(event.deltaY);
 }
 
-function skipIntroOnUserScroll() {
-  if (!introActive) return;
-
-  introActive = false;
-  scroll.vel = 0;
-  smoothScrollVel = 0;
-  cascadeBlend = 0;
-  resetColScrollLag();
-}
-
 function bindStandTouchScroll() {
-  stand.addEventListener('touchstart', (event) => {
-    if (isScrollExcludedTarget(event.target)) return;
+  const onTouchStart = (event) => {
     if (event.touches.length !== 1) return;
 
     const touch = event.touches[0];
+    if (!isTouchScrollPoint(touch.clientX, touch.clientY)) return;
+
     touchInteraction = {
       id: touch.identifier,
       startX: touch.clientX,
@@ -2094,7 +2229,7 @@ function bindStandTouchScroll() {
       velocity: 0,
       scrolling: false,
     };
-  }, { passive: true });
+  };
 
   const onTouchMove = (event) => {
     if (!touchInteraction) return;
@@ -2102,16 +2237,17 @@ function bindStandTouchScroll() {
     const touch = findTouch(event.touches, touchInteraction.id);
     if (!touch) return;
 
-    event.preventDefault();
-
     const dx = touch.clientX - touchInteraction.startX;
     const dy = touch.clientY - touchInteraction.startY;
 
     if (!touchInteraction.scrolling) {
       if (Math.hypot(dx, dy) < TOUCH_SCROLL_THRESHOLD) return;
+      if (Math.abs(dy) < Math.abs(dx) * 0.5) return;
       touchInteraction.scrolling = true;
-      skipIntroOnUserScroll();
+      clearModuleHover(true);
     }
+
+    if (event.cancelable) event.preventDefault();
 
     const deltaY = touchInteraction.lastY - touch.clientY;
     if (Math.abs(deltaY) < 0.25) return;
@@ -2120,10 +2256,10 @@ function bindStandTouchScroll() {
     touchInteraction.velocity = (deltaY / dt) * 16.667;
     touchInteraction.lastY = touch.clientY;
     touchInteraction.lastTime = event.timeStamp;
-    applyScrollInput(deltaY, { direct: true, touchGain: getMobileScrollGain() });
+    applyScrollInput(deltaY, { direct: isTouchUi() });
   };
 
-  const onTouchEnd = (event) => {
+  const endTouchScroll = (event) => {
     if (!touchInteraction) return;
 
     const touch = findTouch(event.changedTouches, touchInteraction.id);
@@ -2132,7 +2268,7 @@ function bindStandTouchScroll() {
     if (!touchInteraction.scrolling) {
       handleModuleTap(touch.clientX, touch.clientY, event.target);
     } else if (state.inertiaEnabled && Math.abs(touchInteraction.velocity) > 0.5) {
-      const flickGain = Math.max(0.5, state.inertiaSensitivity / 80) * getMobileScrollGain();
+      const flickGain = Math.max(0.5, state.inertiaSensitivity / 80);
       scroll.vel += touchInteraction.velocity * flickGain;
       lastWheelTime = performance.now();
       decelStartTime = 0;
@@ -2141,9 +2277,10 @@ function bindStandTouchScroll() {
     touchInteraction = null;
   };
 
+  document.addEventListener('touchstart', onTouchStart, { passive: true, capture: true });
   document.addEventListener('touchmove', onTouchMove, { passive: false, capture: true });
-  document.addEventListener('touchend', onTouchEnd, { passive: true, capture: true });
-  document.addEventListener('touchcancel', onTouchEnd, { passive: true, capture: true });
+  document.addEventListener('touchend', endTouchScroll, { passive: true, capture: true });
+  document.addEventListener('touchcancel', endTouchScroll, { passive: true, capture: true });
 }
 
 function getCatalogIntroDistance() {
@@ -2156,6 +2293,7 @@ function getCatalogIntroDistance() {
 
 function startCatalogIntro() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (MOBILE_SCROLL_MQ.matches) return;
 
   introStartDistance = getCatalogIntroDistance();
   if (introStartDistance <= 0) return;
@@ -2844,12 +2982,21 @@ async function ensureBundledModules() {
     if (!bundled || !Array.isArray(bundled.items) || !bundled.items.length) return;
 
     applyStoredModuleContent(bundled);
-    applyModuleImageFit();
-    await saveModuleContent();
     localStorage.setItem(MODULES_SEED_KEY, seedVersion);
+    await saveModuleContent();
   } catch {
     // bundled modules are optional when running offline without data/
   }
+}
+
+async function bootstrapModuleContent() {
+  await loadModuleContent();
+  await ensureBundledModules();
+  layoutColumns = -1;
+  buildGrid();
+  applyModuleImageFit();
+  updateModuleStat();
+  render();
 }
 
 function applyPresetValues(values) {
@@ -3264,12 +3411,9 @@ async function init() {
     if (event.key === 'Enter') saveCurrentPreset();
   });
 
-  await loadModuleContent();
-  await ensureBundledModules();
-  applyModuleImageFit();
-
   stand.addEventListener('wheel', onWheel, { passive: false });
   bindStandTouchScroll();
+  startPhysicsLoop();
 
   bindModuleHover();
   bindModuleContentPanel();
@@ -3289,7 +3433,15 @@ async function init() {
   renderPresetList();
   updateModuleStat();
   resetColScrollLag();
-  if (document.fonts?.ready) await document.fonts.ready;
+
+  bootstrapModuleContent().then(() => {
+    syncFiniteScrollMetrics();
+    render();
+  }).catch((error) => {
+    console.error(error);
+  });
+
+  await waitFontsReady();
   startHeaderIntroBlur();
   startHeaderScramble();
   startCatalogIntro();
@@ -3317,9 +3469,10 @@ async function init() {
 
   requestAnimationFrame(() => {
     layoutColumns = -1;
+    syncFiniteScrollMetrics();
     render();
   });
-  requestAnimationFrame(physicsLoop);
+  startPhysicsLoop();
 }
 
 init().catch((error) => {
