@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Модульная сетка — стенд</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="stand">
+    <header class="site-header" aria-label="Шапка сайта">
+      <div class="site-header__inner">
+        <div class="site-header__left">
+          <p class="site-header__sandbox">Sandbox:001</p>
+          <svg class="site-header__divider-v site-header__graphic" width="10" height="88" viewBox="0 0 10 88" fill="none" aria-hidden="true">
+            <path d="M5 0H10V88H5V0Z" fill="currentColor"/>
+            <path d="M0 0H5V61H0V0Z" fill="currentColor"/>
+          </svg>
+          <div class="site-header__meta">
+            <div class="site-header__titles">
+              <p>Selected works</p>
+              <p>YY–YY:25 – 26</p>
+            </div>
+            <hr class="site-header__rule-h" aria-hidden="true">
+            <p class="site-header__desc">
+              Experimental work. An attempt to use AI tools<br>
+              in creating a catalog/gallery.
+            </p>
+          </div>
+        </div>
+
+        <div class="site-header__logo-wrap">
+          <svg class="site-header__logo site-header__graphic" width="74" height="42" viewBox="0 0 74 42" fill="none" role="img" aria-label="Sandbox">
+            <path d="M74 0L51.1517 32.662L37 42L22.8483 32.662L0 0L30.9992 22.4113L37 16.8383L43.0008 22.4113L74 0Z" fill="currentColor"/>
+          </svg>
+        </div>
+
+        <div class="site-header__right">
+          <div class="site-header__nav">
+            <svg class="site-header__nav-mark site-header__graphic" width="130" height="39" viewBox="0 0 130 39" fill="none" aria-hidden="true">
+              <path d="M0 0H130V7H0V0Z" fill="currentColor"/>
+              <path d="M97 7V39H94V7H97Z" fill="currentColor"/>
+              <path d="M94 7V17H91V7H94Z" fill="currentColor"/>
+            </svg>
+            <a class="site-header__link" href="#">TG</a>
+            <a class="site-header__link" href="#">INST</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="stand__canvas" id="canvas">
+      <svg class="guides" id="guides" aria-hidden="true"></svg>
+      <div class="grid-cycle" id="grid-cycle">
+        <div class="grid"></div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="dev-tools__window" id="dev-panel" aria-label="Параметры сетки" hidden>
+    <header class="dev-tools__header" id="panel-drag-handle">
+      <div class="dev-tools__header-main">
+        <div class="dev-tools__tabs" role="tablist" aria-label="Разделы панели">
+          <button type="button" class="dev-tools__tab is-active" id="panel-tab-params" role="tab" aria-selected="true" aria-controls="panel-view-params" data-tab="params"><span data-i18n="tab.params">Параметры</span></button>
+          <button type="button" class="dev-tools__tab" id="panel-tab-modules" role="tab" aria-selected="false" aria-controls="panel-view-modules" data-tab="modules"><span data-i18n="tab.modules">Модули</span></button>
+        </div>
+        <div class="dev-tools__header-actions">
+          <div class="dev-tools__lang" role="group" aria-label="Язык панели">
+            <button type="button" class="dev-tools__lang-btn is-active" data-panel-lang="ru" aria-pressed="true"><span data-i18n="lang.ru">RU</span></button>
+            <button type="button" class="dev-tools__lang-btn" data-panel-lang="en" aria-pressed="false"><span data-i18n="lang.en">EN</span></button>
+          </div>
+          <button type="button" class="dev-tools__close" id="panel-close" aria-label="Закрыть панель">×</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="dev-tools__views">
+      <div class="dev-tools__body dev-tools__view" id="panel-view-params" role="tabpanel" aria-labelledby="panel-tab-params">
+      <section class="dev-tools__group" data-group="appearance">
+        <button type="button" class="dev-tools__group-toggle" aria-expanded="true">
+          <span class="dev-tools__group-title">Цвета</span>
+          <span class="dev-tools__group-icon" aria-hidden="true"></span>
+        </button>
+        <div class="dev-tools__group-body">
+          <div class="dev-tools__control">
+            <label for="background-color">Фон</label>
+            <div class="dev-tools__row dev-tools__color-row">
+              <input type="color" id="background-color" value="#ffffff" aria-label="Цвет фона">
+              <input type="text" class="dev-tools__input dev-tools__input--hex" id="background-color-input" value="#ffffff" maxlength="7" spellcheck="false" autocapitalize="off" autocomplete="off">
+            </div>
+          </div>
+
+          <div class="dev-tools__control">
+            <label for="text-color">Текст</label>
+            <div class="dev-tools__row dev-tools__color-row">
+              <input type="color" id="text-color" value="#111111" aria-label="Цвет текста">
+              <input type="text" class="dev-tools__input dev-tools__input--hex" id="text-color-input" value="#111111" maxlength="7" spellcheck="false" autocapitalize="off" autocomplete="off">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="dev-tools__group" data-group="grid">
+        <button type="button" class="dev-tools__group-toggle" aria-expanded="true">
+          <span class="dev-tools__group-title">Сетка</span>
+          <span class="dev-tools__group-icon" aria-hidden="true"></span>
+        </button>
+        <div class="dev-tools__group-body">
+          <label class="dev-tools__check">
+            <input type="checkbox" id="show-guides">
+            <span>Направляющие</span>
+          </label>
+
+          <div class="dev-tools__control">
+            <label for="columns">Колонок</label>
+            <div class="dev-tools__row">
+              <input type="range" id="columns" min="1" max="12" value="7" step="1">
+              <input type="number" class="dev-tools__input" id="columns-input" min="1" max="12" value="7" aria-label="Колонок, число">
+            </div>
+          </div>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="responsive-columns" checked>
+            <span>Адаптив колонок</span>
+          </label>
+
+          <div class="dev-tools__control">
+            <label for="responsive-col-gap">Мин. gap для адаптива, px</label>
+            <div class="dev-tools__row">
+              <input type="range" id="responsive-col-gap" min="0" max="500" value="6" step="1">
+              <input type="number" class="dev-tools__input" id="responsive-col-gap-input" min="0" max="500" value="6" aria-label="Минимальный горизонтальный gap для адаптива, px">
+            </div>
+          </div>
+          <p class="dev-tools__hint" id="hint-responsive-col-gap">На узких экранах колонок станет меньше, если зазор между модулями опустится ниже указанного минимума.</p>
+
+          <div class="dev-tools__control">
+            <label for="module-size">Ширина модуля, px</label>
+            <div class="dev-tools__row">
+              <input type="range" id="module-size" min="60" max="240" value="140" step="1">
+              <input type="number" class="dev-tools__input" id="module-size-input" min="60" max="240" value="140" aria-label="Ширина модуля, число">
+            </div>
+          </div>
+
+          <div class="dev-tools__control">
+            <label for="caption-size">Кегль подписи, px</label>
+            <div class="dev-tools__row">
+              <input type="range" id="caption-size" min="8" max="24" value="11" step="1">
+              <input type="number" class="dev-tools__input" id="caption-size-input" min="8" max="24" value="11" aria-label="Кегль подписи, число">
+            </div>
+          </div>
+
+          <div class="dev-tools__control">
+            <label for="row-gap">Вертикальные зазоры, px</label>
+            <div class="dev-tools__row">
+              <input type="range" id="row-gap" min="0" max="120" value="32" step="1">
+              <input type="number" class="dev-tools__input" id="row-gap-input" min="0" max="120" value="32" aria-label="Вертикальные зазоры, число">
+            </div>
+          </div>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="module-hover">
+            <span>Ховер модуля</span>
+          </label>
+
+          <div class="dev-tools__control">
+            <label for="module-hover-scale">Увеличение, ×</label>
+            <div class="dev-tools__row">
+              <input type="range" id="module-hover-scale" min="100" max="1000" value="110" step="1">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="module-hover-scale-input" min="100" max="1000" value="110" aria-label="Увеличение при наведении, сотые (110 = ×1.10, 1000 = ×10.00)">
+            </div>
+          </div>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="module-hover-zone-enabled" checked>
+            <span>Зона влияния</span>
+          </label>
+
+          <div class="dev-tools__control">
+            <label for="module-hover-zone">Радиус зоны, px</label>
+            <div class="dev-tools__row">
+              <input type="range" id="module-hover-zone" min="40" max="600" value="180" step="5">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="module-hover-zone-input" min="40" max="600" value="180" step="5" aria-label="Зона влияния вокруг модуля, px">
+            </div>
+          </div>
+
+          <div class="dev-tools__control">
+            <label for="module-hover-zone-smoothness">Плавность зоны, %</label>
+            <div class="dev-tools__row">
+              <input type="range" id="module-hover-zone-smoothness" min="0" max="100" value="50" step="1">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="module-hover-zone-smoothness-input" min="0" max="100" value="50" aria-label="Плавность нарастания ховера от края зоны">
+            </div>
+          </div>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="module-hover-animate" checked>
+            <span>Анимация</span>
+          </label>
+
+          <div class="dev-tools__control">
+            <label for="module-hover-duration">Длительность анимации, ms</label>
+            <div class="dev-tools__row">
+              <input type="range" id="module-hover-duration" min="0" max="800" value="180" step="10">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="module-hover-duration-input" min="0" max="800" value="180" step="10" aria-label="Длительность анимации ховера, ms">
+            </div>
+          </div>
+
+          <div class="dev-tools__control">
+            <label id="control-hover-curve">Кривая анимации</label>
+            <div class="curve-editor" id="hover-curve-editor">
+              <svg class="curve-editor__svg" id="hover-curve-svg" viewBox="0 0 100 100" aria-label="Редактор кривой ховера">
+                <line class="curve-editor__axis" x1="0" y1="100" x2="100" y2="0"></line>
+                <line class="curve-editor__axis" id="hover-curve-handle-a" x1="0" y1="100" x2="33" y2="80"></line>
+                <line class="curve-editor__axis" id="hover-curve-handle-b" x1="100" y1="0" x2="20" y2="0"></line>
+                <path class="curve-editor__path" id="hover-curve-path" d="M 0 100 C 33 80, 20 0, 100 0"></path>
+                <circle class="curve-editor__handle" id="hover-curve-p1" cx="33" cy="80" r="4"></circle>
+                <circle class="curve-editor__handle" id="hover-curve-p2" cx="20" cy="0" r="4"></circle>
+              </svg>
+              <div class="curve-editor__values">
+                <label class="curve-editor__field">x1 <input type="number" id="hover-curve-x1" min="0" max="1" step="0.01" value="0.33"></label>
+                <label class="curve-editor__field">y1 <input type="number" id="hover-curve-y1" min="0" max="1" step="0.01" value="0"></label>
+                <label class="curve-editor__field">x2 <input type="number" id="hover-curve-x2" min="0" max="1" step="0.01" value="0.2"></label>
+                <label class="curve-editor__field">y2 <input type="number" id="hover-curve-y2" min="0" max="1" step="0.01" value="1"></label>
+              </div>
+            </div>
+          </div>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="module-hover-parallax">
+            <span>Микродвижение картинки</span>
+          </label>
+
+          <div class="dev-tools__control">
+            <label for="module-hover-parallax-amount">Смещение, px</label>
+            <div class="dev-tools__row">
+              <input type="range" id="module-hover-parallax-amount" min="2" max="20" value="6" step="1">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="module-hover-parallax-amount-input" min="2" max="20" value="6" step="1" aria-label="Сила микродвижения картинки, px">
+            </div>
+          </div>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="module-hover-dim-others">
+            <span>Уменьшать остальные</span>
+          </label>
+
+          <div class="dev-tools__control">
+            <label for="module-hover-dim-scale">Масштаб остальных, %</label>
+            <div class="dev-tools__row">
+              <input type="range" id="module-hover-dim-scale" min="50" max="100" value="85" step="1">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="module-hover-dim-scale-input" min="50" max="100" value="85" aria-label="Масштаб остальных модулей, %">
+            </div>
+          </div>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="module-hover-blur-others">
+            <span>Размывать ячейку</span>
+          </label>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="module-hover-blur-module">
+            <span>Размывать только модуль</span>
+          </label>
+
+          <div class="dev-tools__control">
+            <label for="module-hover-blur-amount">Сила размытия, px</label>
+            <div class="dev-tools__row">
+              <input type="range" id="module-hover-blur-amount" min="0" max="24" value="8" step="1">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="module-hover-blur-amount-input" min="0" max="24" value="8" aria-label="Сила размытия, px">
+            </div>
+          </div>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="module-hover-cascade">
+            <span>Каскад при ховере</span>
+          </label>
+
+          <div class="dev-tools__control">
+            <label for="module-hover-cascade-min">Мин. масштаб, %</label>
+            <div class="dev-tools__row">
+              <input type="range" id="module-hover-cascade-min" min="40" max="100" value="60" step="1">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="module-hover-cascade-min-input" min="40" max="100" value="60" aria-label="Минимальный масштаб каскада, %">
+            </div>
+          </div>
+
+          <div class="dev-tools__control">
+            <label for="module-hover-cascade-radius">Радиус каскада</label>
+            <div class="dev-tools__row">
+              <input type="range" id="module-hover-cascade-radius" min="1" max="8" value="3" step="1">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="module-hover-cascade-radius-input" min="1" max="8" value="3" aria-label="Радиус каскада, колец">
+            </div>
+          </div>
+
+          <div class="dev-tools__control">
+            <label for="module-hover-cascade-sharpness">Резкость каскада, %</label>
+            <div class="dev-tools__row">
+              <input type="range" id="module-hover-cascade-sharpness" min="0" max="100" value="50" step="1">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="module-hover-cascade-sharpness-input" min="0" max="100" value="50" aria-label="Резкость каскада, %">
+            </div>
+          </div>
+
+          <p class="dev-tools__hint" id="hint-module-hover-blur">110 = ×1,10. «Размывать ячейку» — модуль и подпись. «Только модуль» — подпись остаётся резкой. Сила размытия общая для обоих режимов.</p>
+        </div>
+      </section>
+
+      <section class="dev-tools__group" data-group="tape">
+        <button type="button" class="dev-tools__group-toggle" aria-expanded="true">
+          <span class="dev-tools__group-title">Лента</span>
+          <span class="dev-tools__group-icon" aria-hidden="true"></span>
+        </button>
+        <div class="dev-tools__group-body">
+          <label class="dev-tools__check">
+            <input type="checkbox" id="infinite-scroll" checked>
+            <span>Бесконечный скролл</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="dev-tools__group" data-group="scroll-cols">
+        <button type="button" class="dev-tools__group-toggle" aria-expanded="true">
+          <span class="dev-tools__group-title">Скролл колонок</span>
+          <span class="dev-tools__group-icon" aria-hidden="true"></span>
+        </button>
+        <div class="dev-tools__group-body">
+          <label class="dev-tools__check">
+            <input type="checkbox" id="scroll-effect" checked>
+            <span>Включить</span>
+          </label>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="scroll-reverse-up" checked>
+            <span>Реверс при скролле вверх</span>
+          </label>
+
+          <p class="dev-tools__hint" id="hint-scroll-reverse-up">Вниз: каскад слева направо, движение сверху вниз. Вверх: справа налево, снизу вверх.</p>
+
+          <div class="dev-tools__control">
+            <label for="scroll-stagger">Задержка, px</label>
+            <div class="dev-tools__row">
+              <input type="range" id="scroll-stagger" min="0" max="200" value="50" step="1">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="scroll-stagger-input" min="0" max="200" value="50" aria-label="Задержка скролла, число">
+            </div>
+          </div>
+
+          <div class="dev-tools__control">
+            <label for="scroll-intensity">Сила, %</label>
+            <div class="dev-tools__row">
+              <input type="range" id="scroll-intensity" min="0" max="100" value="30" step="1">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="scroll-intensity-input" min="0" max="100" value="30" aria-label="Сила скролла, число">
+            </div>
+          </div>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="scroll-scale-effect">
+            <span>Уменьшать модули</span>
+          </label>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="scroll-scale-cascade" checked>
+            <span>Уменьшать каскадом</span>
+          </label>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="scroll-scale-hold-at-rest" checked>
+            <span>Сохранять каскад в покое</span>
+          </label>
+
+          <div class="dev-tools__control">
+            <label for="scroll-scale-amount">Коэффициент уменьшения, %</label>
+            <div class="dev-tools__row">
+              <input type="range" id="scroll-scale-amount" min="0" max="80" value="25" step="1">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="scroll-scale-amount-input" min="0" max="80" value="25" aria-label="Коэффициент уменьшения, число">
+            </div>
+          </div>
+
+          <div class="dev-tools__control">
+            <label for="scroll-scale-speed">Скорость каскада</label>
+            <div class="dev-tools__row">
+              <input type="range" id="scroll-scale-speed" min="0" max="200" value="50" step="1">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="scroll-scale-speed-input" min="0" max="200" value="50" aria-label="Скорость каскада, число">
+            </div>
+          </div>
+
+          <div class="dev-tools__control">
+            <label for="scroll-scale-ratio">Пропорция мин/макс, %</label>
+            <div class="dev-tools__row">
+              <input type="range" id="scroll-scale-ratio" min="20" max="100" value="65" step="1">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="scroll-scale-ratio-input" min="20" max="100" value="65" aria-label="Пропорция мин/макс, число">
+            </div>
+          </div>
+
+          <p class="dev-tools__hint" id="hint-scroll-scale">Мин/макс: насколько меньше самый маленький модуль относительно самого большого в каскаде. Без «Сохранять в покое» — все модули возвращаются к исходному размеру после скролла.</p>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="scroll-blur-effect">
+            <span>Размытие при скролле</span>
+          </label>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="scroll-blur-cell">
+            <span>Размывать ячейку</span>
+          </label>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="scroll-blur-module" checked>
+            <span>Размывать только модуль</span>
+          </label>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="scroll-blur-cascade" checked>
+            <span>Размывать каскадом</span>
+          </label>
+
+          <label class="dev-tools__check">
+            <input type="checkbox" id="scroll-blur-hold-at-rest" checked>
+            <span>Сохранять каскад в покое</span>
+          </label>
+
+          <div class="dev-tools__control">
+            <label for="scroll-blur-amount">Сила размытия, px</label>
+            <div class="dev-tools__row">
+              <input type="range" id="scroll-blur-amount" min="0" max="24" value="6" step="1">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="scroll-blur-amount-input" min="0" max="24" value="6" aria-label="Сила размытия при скролле, px">
+            </div>
+          </div>
+
+          <div class="dev-tools__control">
+            <label for="scroll-blur-speed">Скорость каскада</label>
+            <div class="dev-tools__row">
+              <input type="range" id="scroll-blur-speed" min="0" max="200" value="50" step="1">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="scroll-blur-speed-input" min="0" max="200" value="50" aria-label="Скорость каскада размытия, число">
+            </div>
+          </div>
+
+          <div class="dev-tools__control">
+            <label for="scroll-blur-ratio">Пропорция мин/макс, %</label>
+            <div class="dev-tools__row">
+              <input type="range" id="scroll-blur-ratio" min="20" max="100" value="65" step="1">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="scroll-blur-ratio-input" min="20" max="100" value="65" aria-label="Пропорция размытия мин/макс, число">
+            </div>
+          </div>
+
+          <p class="dev-tools__hint" id="hint-scroll-blur">Размытие синхронизируется со скроллом. Каскад — по колонкам, как у уменьшения модулей.</p>
+        </div>
+      </section>
+
+      <section class="dev-tools__group" data-group="inertia">
+        <button type="button" class="dev-tools__group-toggle" aria-expanded="true">
+          <span class="dev-tools__group-title">Инерция скролла</span>
+          <span class="dev-tools__group-icon" aria-hidden="true"></span>
+        </button>
+        <div class="dev-tools__group-body">
+          <label class="dev-tools__check">
+            <input type="checkbox" id="inertia-enabled" checked>
+            <span>Включить</span>
+          </label>
+
+          <div class="dev-tools__control">
+            <label for="inertia-sensitivity">Чувствительность, %</label>
+            <div class="dev-tools__row">
+              <input type="range" id="inertia-sensitivity" min="10" max="300" value="100" step="1">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="inertia-sensitivity-input" min="10" max="300" value="100" aria-label="Чувствительность, число">
+            </div>
+          </div>
+
+          <div class="dev-tools__control">
+            <label for="inertia-duration">Длительность, ms</label>
+            <div class="dev-tools__row">
+              <input type="range" id="inertia-duration" min="200" max="4000" value="1200" step="50">
+              <input type="number" class="dev-tools__input dev-tools__input--wide" id="inertia-duration-input" min="200" max="4000" value="1200" step="50" aria-label="Длительность, число">
+            </div>
+          </div>
+
+          <div class="dev-tools__control">
+            <label id="control-inertia-curve">Кривая замедления</label>
+            <div class="curve-editor" id="curve-editor">
+              <svg class="curve-editor__svg" id="curve-svg" viewBox="0 0 100 100" aria-label="Редактор кривой инерции">
+                <line class="curve-editor__axis" x1="0" y1="100" x2="100" y2="0"></line>
+                <line class="curve-editor__axis" id="curve-handle-a" x1="0" y1="100" x2="25" y2="75"></line>
+                <line class="curve-editor__axis" id="curve-handle-b" x1="100" y1="0" x2="75" y2="25"></line>
+                <path class="curve-editor__path" id="curve-path" d="M 0 100 C 25 75, 75 25, 100 0"></path>
+                <circle class="curve-editor__handle" id="curve-p1" cx="25" cy="75" r="4"></circle>
+                <circle class="curve-editor__handle" id="curve-p2" cx="75" cy="25" r="4"></circle>
+              </svg>
+              <div class="curve-editor__values">
+                <label class="curve-editor__field">x1 <input type="number" id="curve-x1" min="0" max="1" step="0.01" value="0"></label>
+                <label class="curve-editor__field">y1 <input type="number" id="curve-y1" min="0" max="1" step="0.01" value="0"></label>
+                <label class="curve-editor__field">x2 <input type="number" id="curve-x2" min="0" max="1" step="0.01" value="0.25"></label>
+                <label class="curve-editor__field">y2 <input type="number" id="curve-y2" min="0" max="1" step="0.01" value="1"></label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="dev-tools__group" data-group="presets">
+        <button type="button" class="dev-tools__group-toggle" aria-expanded="true">
+          <span class="dev-tools__group-title">Пресеты</span>
+          <span class="dev-tools__group-icon" aria-hidden="true"></span>
+        </button>
+        <div class="dev-tools__group-body">
+          <div class="dev-tools__preset-save">
+            <input type="text" class="dev-tools__text" id="preset-name" data-i18n-placeholder="preset.placeholder" placeholder="Название пресета" maxlength="40">
+            <button type="button" class="dev-tools__btn" id="preset-save" data-i18n="preset.save">Сохранить</button>
+          </div>
+          <p class="dev-tools__hint" id="hint-preset">★ — пресет по умолчанию, загружается при обновлении страницы</p>
+          <ul class="dev-tools__preset-list" id="preset-list"></ul>
+          <p class="dev-tools__empty" id="preset-empty" hidden>Пресетов пока нет</p>
+        </div>
+      </section>
+
+      <section class="dev-tools__group" data-group="stats">
+        <button type="button" class="dev-tools__group-toggle" aria-expanded="true">
+          <span class="dev-tools__group-title">Статистика</span>
+          <span class="dev-tools__group-icon" aria-hidden="true"></span>
+        </button>
+        <div class="dev-tools__group-body">
+          <dl class="dev-tools__stats">
+            <div>
+              <dt id="stat-col-gap">Гориз. зазор</dt>
+              <dd id="col-gap-stat">—</dd>
+            </div>
+            <div>
+              <dt id="stat-modules">Модулей</dt>
+              <dd id="modules-stat">100 × 2</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+      </div>
+
+      <div class="dev-tools__body dev-tools__view" id="panel-view-modules" role="tabpanel" aria-labelledby="panel-tab-modules" hidden>
+        <div class="dev-tools__control">
+          <span class="dev-tools__control-label" id="control-module-image-fit">Изображение в модуле</span>
+          <div class="dev-tools__radio-group">
+            <label class="dev-tools__radio">
+              <input type="radio" name="module-image-fit" id="module-image-fit-cover" value="cover" checked>
+              <span>Квадрат (обрезка)</span>
+            </label>
+            <label class="dev-tools__radio">
+              <input type="radio" name="module-image-fit" id="module-image-fit-width" value="width">
+              <span>По ширине модуля</span>
+            </label>
+          </div>
+        </div>
+
+        <p class="dev-tools__hint" id="hint-modules">Номер привязывается к позиции в списке. Перетаскивайте строки для смены порядка. Пустые модули (без картинки и с названием Placeholder) можно удалить кнопкой −.</p>
+
+        <ul class="module-list" id="module-list" aria-label="Список модулей"></ul>
+
+        <button type="button" class="dev-tools__btn dev-tools__btn--block" id="module-add" data-i18n="modules.add">Добавить модуль</button>
+      </div>
+    </div>
+  </aside>
+
+  <button type="button" class="dev-tools__fab" id="panel-open" aria-label="Открыть параметры" aria-expanded="false">
+    <span data-i18n="tab.params">Параметры</span>
+  </button>
+
+  <script src="js/panel-i18n.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
