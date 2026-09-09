@@ -3,6 +3,8 @@ const DEFAULT_MODULE_COUNT = 100;
 const PRESETS_KEY = 'grid-stand-presets';
 const DEFAULT_PRESET_KEY = 'grid-stand-default-preset';
 const PRESETS_SEED_KEY = 'grid-stand-presets-seed';
+const MODULES_SEED_KEY = 'grid-stand-modules-seed';
+const BUNDLED_MODULES_URL = 'data/site-modules.json';
 const PANEL_GROUPS_KEY = 'grid-stand-panel-groups';
 const MODULES_CONTENT_KEY = 'grid-stand-modules';
 const MODULES_DB_NAME = 'grid-stand';
@@ -2648,24 +2650,37 @@ function ensureBundledPresets() {
   const storedSeed = localStorage.getItem(PRESETS_SEED_KEY);
   if (storedSeed === seedVersion) return;
 
-  const existing = loadPresets();
-  const existingIds = new Set(existing.map((entry) => entry.id));
-  const toAdd = bundled
-    .filter((entry) => !existingIds.has(entry.id))
-    .map(({ id, name, values }) => ({ id, name, values }));
+  savePresets(bundled.map(({ id, name, values }) => ({ id, name, values })));
 
-  if (toAdd.length) {
-    savePresets([...toAdd, ...existing]);
-  }
-
-  if (!loadDefaultPresetId()) {
-    const defaultEntry = bundled.find((entry) => entry.isDefault) || bundled[0];
-    if (defaultEntry && loadPresets().some((entry) => entry.id === defaultEntry.id)) {
-      saveDefaultPresetId(defaultEntry.id);
-    }
+  const defaultEntry = bundled.find((entry) => entry.isDefault) || bundled[0];
+  if (defaultEntry) {
+    saveDefaultPresetId(defaultEntry.id);
   }
 
   localStorage.setItem(PRESETS_SEED_KEY, seedVersion);
+}
+
+async function ensureBundledModules() {
+  const seedVersion = window.BUNDLED_MODULES_VERSION;
+  if (!seedVersion) return;
+
+  const storedSeed = localStorage.getItem(MODULES_SEED_KEY);
+  if (storedSeed === seedVersion) return;
+
+  try {
+    const response = await fetch(BUNDLED_MODULES_URL);
+    if (!response.ok) return;
+
+    const bundled = await response.json();
+    if (!bundled || !Array.isArray(bundled.items) || !bundled.items.length) return;
+
+    applyStoredModuleContent(bundled);
+    applyModuleImageFit();
+    await saveModuleContent();
+    localStorage.setItem(MODULES_SEED_KEY, seedVersion);
+  } catch {
+    // bundled modules are optional when running offline without data/
+  }
 }
 
 function applyPresetValues(values) {
@@ -3066,6 +3081,7 @@ async function init() {
   });
 
   await loadModuleContent();
+  await ensureBundledModules();
   applyModuleImageFit();
 
   stand.addEventListener('wheel', onWheel, { passive: false });
