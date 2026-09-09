@@ -2,6 +2,7 @@ const EDGE_MARGIN = 10;
 const DEFAULT_MODULE_COUNT = 100;
 const PRESETS_KEY = 'grid-stand-presets';
 const DEFAULT_PRESET_KEY = 'grid-stand-default-preset';
+const PRESETS_SEED_KEY = 'grid-stand-presets-seed';
 const PANEL_GROUPS_KEY = 'grid-stand-panel-groups';
 const MODULES_CONTENT_KEY = 'grid-stand-modules';
 const MODULES_DB_NAME = 'grid-stand';
@@ -2639,6 +2640,34 @@ function savePresets(presets) {
   localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
 }
 
+function ensureBundledPresets() {
+  const bundled = window.BUNDLED_PRESETS;
+  const seedVersion = window.BUNDLED_PRESETS_VERSION;
+  if (!Array.isArray(bundled) || !bundled.length || !seedVersion) return;
+
+  const storedSeed = localStorage.getItem(PRESETS_SEED_KEY);
+  if (storedSeed === seedVersion) return;
+
+  const existing = loadPresets();
+  const existingIds = new Set(existing.map((entry) => entry.id));
+  const toAdd = bundled
+    .filter((entry) => !existingIds.has(entry.id))
+    .map(({ id, name, values }) => ({ id, name, values }));
+
+  if (toAdd.length) {
+    savePresets([...toAdd, ...existing]);
+  }
+
+  if (!loadDefaultPresetId()) {
+    const defaultEntry = bundled.find((entry) => entry.isDefault) || bundled[0];
+    if (defaultEntry && loadPresets().some((entry) => entry.id === defaultEntry.id)) {
+      saveDefaultPresetId(defaultEntry.id);
+    }
+  }
+
+  localStorage.setItem(PRESETS_SEED_KEY, seedVersion);
+}
+
 function applyPresetValues(values) {
   state.columns = values.columns;
   state.responsiveColumns = values.responsiveColumns !== false;
@@ -3044,6 +3073,8 @@ async function init() {
   bindModuleHover();
   bindModuleContentPanel();
   paramDefs.forEach(bindParam);
+
+  ensureBundledPresets();
 
   const defaultPreset = getDefaultPreset();
   if (defaultPreset) {

@@ -1,0 +1,107 @@
+const BUNDLED_PRESETS_VERSION = '1';
+
+const bundledPresetBase = {
+  columns: 7,
+  responsiveColumns: true,
+  responsiveColGap: 6,
+  moduleSize: 140,
+  captionSize: 11,
+  rowGap: 32,
+  showGuides: false,
+  moduleHover: false,
+  moduleHoverScale: 110,
+  moduleHoverZone: 180,
+  moduleHoverZoneEnabled: true,
+  moduleHoverZoneSmoothness: 50,
+  moduleHoverAnimate: true,
+  moduleHoverDuration: 180,
+  moduleHoverCurve: [0.33, 0, 0.2, 1],
+  moduleHoverDimOthers: false,
+  moduleHoverDimScale: 85,
+  moduleHoverBlurOthers: false,
+  moduleHoverBlurModule: false,
+  moduleHoverBlurAmount: 8,
+  moduleHoverCascade: false,
+  moduleHoverCascadeMin: 60,
+  moduleHoverCascadeRadius: 3,
+  moduleHoverCascadeSharpness: 50,
+  moduleHoverParallax: false,
+  moduleHoverParallaxAmount: 6,
+  scrollEffect: true,
+  scrollStagger: 50,
+  scrollIntensity: 30,
+  scrollReverseUp: true,
+  scrollScaleEffect: false,
+  scrollScaleCascade: true,
+  scrollScaleAmount: 25,
+  scrollScaleSpeed: 50,
+  scrollScaleRatio: 65,
+  scrollScaleHoldAtRest: true,
+  scrollBlurEffect: false,
+  scrollBlurCell: false,
+  scrollBlurModule: true,
+  scrollBlurCascade: true,
+  scrollBlurAmount: 6,
+  scrollBlurSpeed: 50,
+  scrollBlurRatio: 65,
+  scrollBlurHoldAtRest: true,
+  inertiaEnabled: true,
+  inertiaSensitivity: 100,
+  inertiaDuration: 1200,
+  inertiaCurve: [0, 0, 0.25, 1],
+  infiniteScroll: true,
+  backgroundColor: '#ffffff',
+  textColor: '#111111',
+};
+
+function createBundledPreset(id, name, overrides = {}, isDefault = false) {
+  const values = {
+    ...bundledPresetBase,
+    ...overrides,
+    moduleHoverCurve: [...(overrides.moduleHoverCurve || bundledPresetBase.moduleHoverCurve)],
+    inertiaCurve: [...(overrides.inertiaCurve || bundledPresetBase.inertiaCurve)],
+  };
+
+  return { id, name, values, isDefault };
+}
+
+window.BUNDLED_PRESETS = [
+  createBundledPreset('preset-sandbox', 'Sandbox', {}, true),
+  createBundledPreset('preset-hover', 'Hover focus', {
+    moduleHover: true,
+    moduleHoverParallax: true,
+    moduleHoverDimOthers: true,
+    moduleHoverCascade: true,
+    moduleHoverBlurModule: true,
+    moduleHoverBlurAmount: 6,
+  }),
+  createBundledPreset('preset-flow', 'Scroll flow', {
+    scrollEffect: true,
+    scrollStagger: 70,
+    scrollIntensity: 45,
+    scrollScaleEffect: true,
+    scrollScaleCascade: true,
+    scrollScaleAmount: 30,
+    scrollBlurEffect: true,
+    scrollBlurModule: true,
+    scrollBlurCascade: true,
+    scrollBlurAmount: 8,
+  }),
+  createBundledPreset('preset-noir', 'Noir', {
+    backgroundColor: '#0a0a0a',
+    textColor: '#f2f2f2',
+    moduleHover: true,
+    moduleHoverDimOthers: true,
+    scrollEffect: true,
+    scrollIntensity: 20,
+  }),
+  createBundledPreset('preset-compact', 'Compact grid', {
+    columns: 9,
+    moduleSize: 110,
+    captionSize: 10,
+    rowGap: 20,
+    responsiveColGap: 4,
+  }),
+];
+
+window.BUNDLED_PRESETS_VERSION = BUNDLED_PRESETS_VERSION;
