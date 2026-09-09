@@ -112,6 +112,8 @@ let cycleHeight = 0;
 let layoutColumns = -1;
 
 let dragState = null;
+let standDragScroll = null;
+const MOBILE_PANEL_MQ = window.matchMedia('(max-width: 640px)');
 let lastFrameTime = performance.now();
 let lastWheelTime = 0;
 let decelStartTime = 0;
@@ -1953,17 +1955,17 @@ function syncScrollVisuals(updateGuides = false, dtNorm = 1) {
   if (updateGuides && state.showGuides) drawGuides();
 }
 
-function onWheel(event) {
-  if (devPanel.contains(event.target)) return;
-  if (introActive) {
-    event.preventDefault();
-    return;
-  }
+function isScrollExcludedTarget(target) {
+  if (!(target instanceof Element)) return false;
+  return Boolean(target.closest('.site-header a, .dev-tools__window, .dev-tools__fab'));
+}
 
-  event.preventDefault();
+function applyScrollInput(deltaY) {
+  if (introActive) return false;
+
   clearModuleHover(true);
 
-  const delta = event.deltaY * (state.inertiaSensitivity / 100);
+  const delta = deltaY * (state.inertiaSensitivity / 100);
   lastWheelTime = performance.now();
   decelStartTime = 0;
 
@@ -1975,6 +1977,70 @@ function onWheel(event) {
     applyScrollBounds();
     syncScrollVisuals(true);
   }
+
+  return true;
+}
+
+function onWheel(event) {
+  if (devPanel.contains(event.target)) return;
+  if (introActive) {
+    event.preventDefault();
+    return;
+  }
+
+  event.preventDefault();
+  applyScrollInput(event.deltaY);
+}
+
+function bindStandTouchScroll() {
+  stand.addEventListener('pointerdown', (event) => {
+    if (introActive || isScrollExcludedTarget(event.target)) return;
+    if (event.pointerType === 'mouse') return;
+    if (event.isPrimary === false) return;
+
+    standDragScroll = {
+      pointerId: event.pointerId,
+      lastY: event.clientY,
+      lastTime: event.timeStamp,
+      velocity: 0,
+    };
+
+    stand.setPointerCapture(event.pointerId);
+  });
+
+  stand.addEventListener('pointermove', (event) => {
+    if (!standDragScroll || event.pointerId !== standDragScroll.pointerId) return;
+
+    const deltaY = standDragScroll.lastY - event.clientY;
+    const dt = Math.max(1, event.timeStamp - standDragScroll.lastTime);
+
+    if (Math.abs(deltaY) > 0.5) {
+      standDragScroll.velocity = (deltaY / dt) * 16.667;
+      standDragScroll.lastY = event.clientY;
+      standDragScroll.lastTime = event.timeStamp;
+      applyScrollInput(deltaY);
+      event.preventDefault();
+    }
+  });
+
+  const endStandDragScroll = (event) => {
+    if (!standDragScroll || event.pointerId !== standDragScroll.pointerId) return;
+
+    if (state.inertiaEnabled && Math.abs(standDragScroll.velocity) > 0.5) {
+      scroll.vel += standDragScroll.velocity * (state.inertiaSensitivity / 100) * 0.35;
+      lastWheelTime = performance.now();
+      decelStartTime = 0;
+    }
+
+    if (stand.hasPointerCapture(event.pointerId)) {
+      stand.releasePointerCapture(event.pointerId);
+    }
+
+    standDragScroll = null;
+  };
+
+  stand.addEventListener('pointerup', endStandDragScroll);
+  stand.addEventListener('pointercancel', endStandDragScroll);
 }
 
 function getCatalogIntroDistance() {
@@ -2821,9 +2887,23 @@ function saveCurrentPreset() {
   renderPresetList();
 }
 
+function isMobilePanelLayout() {
+  return MOBILE_PANEL_MQ.matches;
+}
+
 function placePanelDefault() {
+  if (isMobilePanelLayout()) {
+    devPanel.style.left = '0';
+    devPanel.style.right = '0';
+    devPanel.style.top = 'auto';
+    devPanel.style.bottom = '0';
+    return;
+  }
+
   const margin = 16;
-  devPanel.style.left = `${window.innerWidth - devPanel.offsetWidth - margin}px`;
+  devPanel.style.right = '';
+  devPanel.style.bottom = '';
+  devPanel.style.left = `${Math.max(margin, window.innerWidth - devPanel.offsetWidth - margin)}px`;
   devPanel.style.top = `${Math.max(margin, window.innerHeight - devPanel.offsetHeight - 72)}px`;
 }
 
@@ -2831,7 +2911,7 @@ function setPanelOpen(isOpen) {
   if (isOpen) {
     devPanel.hidden = false;
 
-    if (!devPanel.dataset.positioned) {
+    if (isMobilePanelLayout() || !devPanel.dataset.positioned) {
       placePanelDefault();
       devPanel.dataset.positioned = 'true';
     }
@@ -2845,6 +2925,7 @@ function setPanelOpen(isOpen) {
 
 function bindPanelDrag() {
   dragHandle.addEventListener('pointerdown', (event) => {
+    if (isMobilePanelLayout()) return;
     if (event.target.closest('.dev-tools__close, .dev-tools__tab, .dev-tools__lang-btn')) return;
 
     const rect = devPanel.getBoundingClientRect();
@@ -3085,6 +3166,7 @@ async function init() {
   applyModuleImageFit();
 
   stand.addEventListener('wheel', onWheel, { passive: false });
+  bindStandTouchScroll();
 
   bindModuleHover();
   bindModuleContentPanel();
@@ -3109,8 +3191,14 @@ async function init() {
   startHeaderScramble();
   startCatalogIntro();
 
-  const onViewportLayoutChange = () => render();
+  const onViewportLayoutChange = () => {
+    if (isMobilePanelLayout() && !devPanel.hidden) {
+      placePanelDefault();
+    }
+    render();
+  };
   window.addEventListener('resize', onViewportLayoutChange);
+  MOBILE_PANEL_MQ.addEventListener('change', onViewportLayoutChange);
   window.visualViewport?.addEventListener('resize', onViewportLayoutChange);
   window.visualViewport?.addEventListener('scroll', onViewportLayoutChange);
 
