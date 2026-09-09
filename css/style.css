@@ -26,13 +26,18 @@
 html,
 body {
   height: 100%;
+  width: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
 }
 
 body {
+  position: fixed;
+  inset: 0;
   font-family: Inter, "Helvetica Neue", Helvetica, Arial, sans-serif;
   background: var(--site-bg);
   color: var(--text);
-  overflow: hidden;
 }
 
 .stand {
@@ -56,6 +61,7 @@ body {
 
 .site-header a {
   pointer-events: auto;
+  touch-action: manipulation;
 }
 
 .site-header__inner {
@@ -468,6 +474,7 @@ body {
 /* ── Dev panel (Apple-style, monospace) ── */
 .dev-tools__window,
 .dev-tools__fab {
+  touch-action: manipulation;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 11px;
   line-height: 1.35;
@@ -522,6 +529,7 @@ body {
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .dev-tools__view[hidden] {

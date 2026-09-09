@@ -2069,9 +2069,19 @@ function onWheel(event) {
   applyScrollInput(event.deltaY);
 }
 
+function skipIntroOnUserScroll() {
+  if (!introActive) return;
+
+  introActive = false;
+  scroll.vel = 0;
+  smoothScrollVel = 0;
+  cascadeBlend = 0;
+  resetColScrollLag();
+}
+
 function bindStandTouchScroll() {
-  canvas.addEventListener('touchstart', (event) => {
-    if (introActive || isScrollExcludedTarget(event.target)) return;
+  stand.addEventListener('touchstart', (event) => {
+    if (isScrollExcludedTarget(event.target)) return;
     if (event.touches.length !== 1) return;
 
     const touch = event.touches[0];
@@ -2086,16 +2096,13 @@ function bindStandTouchScroll() {
     };
   }, { passive: true });
 
-  canvas.addEventListener('touchmove', (event) => {
+  const onTouchMove = (event) => {
     if (!touchInteraction) return;
 
     const touch = findTouch(event.touches, touchInteraction.id);
     if (!touch) return;
 
-    if (introActive) {
-      event.preventDefault();
-      return;
-    }
+    event.preventDefault();
 
     const dx = touch.clientX - touchInteraction.startX;
     const dy = touch.clientY - touchInteraction.startY;
@@ -2103,21 +2110,20 @@ function bindStandTouchScroll() {
     if (!touchInteraction.scrolling) {
       if (Math.hypot(dx, dy) < TOUCH_SCROLL_THRESHOLD) return;
       touchInteraction.scrolling = true;
+      skipIntroOnUserScroll();
     }
 
     const deltaY = touchInteraction.lastY - touch.clientY;
     if (Math.abs(deltaY) < 0.25) return;
-
-    event.preventDefault();
 
     const dt = Math.max(1, event.timeStamp - touchInteraction.lastTime);
     touchInteraction.velocity = (deltaY / dt) * 16.667;
     touchInteraction.lastY = touch.clientY;
     touchInteraction.lastTime = event.timeStamp;
     applyScrollInput(deltaY, { direct: true, touchGain: getMobileScrollGain() });
-  }, { passive: false });
+  };
 
-  const endTouch = (event) => {
+  const onTouchEnd = (event) => {
     if (!touchInteraction) return;
 
     const touch = findTouch(event.changedTouches, touchInteraction.id);
@@ -2135,8 +2141,9 @@ function bindStandTouchScroll() {
     touchInteraction = null;
   };
 
-  canvas.addEventListener('touchend', endTouch, { passive: true });
-  canvas.addEventListener('touchcancel', endTouch, { passive: true });
+  document.addEventListener('touchmove', onTouchMove, { passive: false, capture: true });
+  document.addEventListener('touchend', onTouchEnd, { passive: true, capture: true });
+  document.addEventListener('touchcancel', onTouchEnd, { passive: true, capture: true });
 }
 
 function getCatalogIntroDistance() {
